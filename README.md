@@ -46,3 +46,9 @@ Prikazuje cijeli tok: lokalni razvoj kroz Compose i produkcijski deployment kroz
 - Trivy skeniranje slika u CI pipelineu
 
 Detalji skeniranja: `docs/security/image-scan-report.md`
+---
+
+## Student
+
+Implementirao: **Marin Pavlović**
+[Algebra Bernays](https://algebra.hr/sveuciliste/), 2025./2026.
