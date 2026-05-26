@@ -1,0 +1,34 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  hello:
+    name: Hello World Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pozdrav
+        run: |
+          echo "Pozdrav iz GitHub Actions!"
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Aktor: ${{ github.actor }}"
+
+      - name: Provjera alata na runneru
+        run: |
+          echo "===== Docker verzija ====="
+          docker --version
+          echo ""
+          echo "===== Git verzija ====="
+          git --version
+          echo ""
+          echo "===== OS info ====="
+          cat /etc/os-release | head -3
