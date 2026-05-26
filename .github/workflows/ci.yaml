@@ -9,26 +9,53 @@ on:
       - main
 
 jobs:
+  # Hello World - ostavljamo radi referentne svrhe i debug-a
   hello:
     name: Hello World Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Pozdrav
+      - name: Pozdrav i info
         run: |
           echo "Pozdrav iz GitHub Actions!"
           echo "Repository: ${{ github.repository }}"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
-          echo "Aktor: ${{ github.actor }}"
 
-      - name: Provjera alata na runneru
+  # NOVI JOB: build 3 Docker slike
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: hello   # Pokreće se TEK NAKON hello job-a
+
+    # Strategy matrix - paralelno gradimo 3 slike
+    strategy:
+      matrix:
+        service:
+          - api
+          - worker
+          - frontend
+      fail-fast: false  # Ako jedan padne, ostali nastavljaju
+
+    steps:
+      - name: Checkout koda
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: false   # Za sad samo build, kasnije ćemo dodati push
+          tags: |
+            ticketing-${{ matrix.service }}:${{ github.sha }}
+            ticketing-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Provjera buildanih slika
         run: |
-          echo "===== Docker verzija ====="
-          docker --version
-          echo ""
-          echo "===== Git verzija ====="
-          git --version
-          echo ""
-          echo "===== OS info ====="
-          cat /etc/os-release | head -3
+          echo "===== Slika ${{ matrix.service }} izgrađena ====="
+          echo "Slika će biti dostupna lokalno tijekom workflow-a"
