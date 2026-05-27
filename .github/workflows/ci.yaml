@@ -2,82 +2,86 @@ name: CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  # Hello World - ostavljamo radi referentne svrhe i debug-a
   hello:
     name: Hello World Test
     runs-on: ubuntu-latest
     steps:
-      - name: Pozdrav i info
-        run: |
-          echo "Pozdrav iz GitHub Actions!"
-          echo "Repository: ${{ github.repository }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Branch: ${{ github.ref_name }}"
+      - name: Print hello
+        run: echo "Hello from CI pipeline! Commit ${{ github.sha }}"
 
-  # Build job sad uključuje Trivy security scan
   build:
     name: Build & Scan Docker Images
-    runs-on: ubuntu-latest
     needs: hello
-
+    runs-on: ubuntu-latest
     permissions:
-      contents: read           # za checkout
-      security-events: write   # za SARIF upload u Security tab
-
+      contents: read
+      security-events: write
+      packages: write
     strategy:
-      matrix:
-        service:
-          - api
-          - worker
-          - frontend
       fail-fast: false
-
+      matrix:
+        service: [api, worker, frontend]
     steps:
-      - name: Checkout koda
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build ${{ matrix.service }} image
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+
+      - name: Build and push image to GHCR
         uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
-          push: false
-          load: true            # Učitaj sliku u lokalni Docker (za Trivy)
-          tags: |
-            ticketing-${{ matrix.service }}:${{ github.sha }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Trivy vulnerability scan (SARIF)
+      - name: Run Trivy vulnerability scanner (SARIF for Security tab)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ticketing-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository }}/${{ matrix.service }}:sha-${{ github.sha }}
           format: 'sarif'
           output: 'trivy-${{ matrix.service }}.sarif'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '0'        # Za sad ne padaj na ranjivosti
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          ignore-unfixed: true
 
-      - name: Upload SARIF to GitHub Security
-        if: always()
+      - name: Upload Trivy scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: 'trivy-${{ matrix.service }}.sarif'
           category: 'trivy-${{ matrix.service }}'
 
-      - name: Trivy table report (čitljiv u logovima)
+      - name: Run Trivy vulnerability scanner (quality gate)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ticketing-${{ matrix.service }}:${{ github.sha }}
+          image-ref: ghcr.io/${{ github.repository }}/${{ matrix.service }}:sha-${{ github.sha }}
           format: 'table'
-          severity: 'HIGH,CRITICAL'
-          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
