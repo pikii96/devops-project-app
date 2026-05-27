@@ -21,20 +21,23 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
 
-  # NOVI JOB: build 3 Docker slike
+  # Build job sad uključuje Trivy security scan
   build:
-    name: Build Docker Images
+    name: Build & Scan Docker Images
     runs-on: ubuntu-latest
-    needs: hello   # Pokreće se TEK NAKON hello job-a
+    needs: hello
 
-    # Strategy matrix - paralelno gradimo 3 slike
+    permissions:
+      contents: read           # za checkout
+      security-events: write   # za SARIF upload u Security tab
+
     strategy:
       matrix:
         service:
           - api
           - worker
           - frontend
-      fail-fast: false  # Ako jedan padne, ostali nastavljaju
+      fail-fast: false
 
     steps:
       - name: Checkout koda
@@ -48,14 +51,33 @@ jobs:
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
-          push: false   # Za sad samo build, kasnije ćemo dodati push
+          push: false
+          load: true            # Učitaj sliku u lokalni Docker (za Trivy)
           tags: |
             ticketing-${{ matrix.service }}:${{ github.sha }}
-            ticketing-${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Provjera buildanih slika
-        run: |
-          echo "===== Slika ${{ matrix.service }} izgrađena ====="
-          echo "Slika će biti dostupna lokalno tijekom workflow-a"
+      - name: Trivy vulnerability scan (SARIF)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ticketing-${{ matrix.service }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-${{ matrix.service }}.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'        # Za sad ne padaj na ranjivosti
+
+      - name: Upload SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-${{ matrix.service }}.sarif'
+          category: 'trivy-${{ matrix.service }}'
+
+      - name: Trivy table report (čitljiv u logovima)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ticketing-${{ matrix.service }}:${{ github.sha }}
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
