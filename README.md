@@ -5,7 +5,7 @@
 [![Security Scanning](https://img.shields.io/badge/Trivy-quality_gate-blue?logo=aquasonar)](https://github.com/pikii96/devops-project-app/security/code-scanning)
 
 Ovaj repozitorij je referentni uzorak aplikacije za kolegij **Uvod u DevOps - DevSecOps**.
-Prikazuje cijeli tok: lokalni razvoj kroz Compose i produkcijski deployment kroz Kubernetes manifeste.
+Prikazuje cijeli tok: lokalni razvoj kroz Compose i produkcijski deployment kroz Kubernetes/Helm.
 
 ## Arhitektura
 
@@ -14,6 +14,16 @@ Prikazuje cijeli tok: lokalni razvoj kroz Compose i produkcijski deployment kroz
 - `worker` - pozadinska obrada queue poruka
 - `postgres` - trajna pohrana narudzbi
 - `redis` - queue/cache sloj
+
+## Lokalni razvoj (Docker Compose)
+
+```bash
+# Pokreni cijeli stack
+docker compose up -d
+
+# Pratite logove
+docker compose logs -f
+```
 
 ### Brza validacija funkcionalnosti
 
@@ -39,15 +49,122 @@ Prikazuje cijeli tok: lokalni razvoj kroz Compose i produkcijski deployment kroz
 5. UI:
    - Otvori `http://localhost:3000`
 
+## Production deployment (Kubernetes/Helm)
+
+Helm chart u direktoriju [`k8s/ticketing/`](k8s/ticketing/) deploya cijelu aplikaciju u Kubernetes cluster.
+
+### Prerequisites
+
+```bash
+# Tools (verzije korištene u projektu)
+kind v0.31.0        # Lokalni Kubernetes cluster
+kubectl v1.36.1     # K8s CLI
+helm v4.2.0         # Helm package manager
+```
+
+### Setup kind cluster
+
+```bash
+cd k8s/
+
+# Kreiraj cluster s port mapiranjem 80/443
+kind create cluster --config kind-cluster.yaml --name ticketing-cluster
+
+# Instaliraj nginx-ingress controller
+kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
+
+# Čekaj da Ingress controller bude Ready
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+```
+
+### Deploy aplikacije
+
+```bash
+cd k8s/ticketing/
+
+# Validacija chart-a
+helm lint .
+
+# Pregled što će biti instalirano (dry-run)
+helm template ticketing . | less
+
+# Instalacija
+helm install ticketing . \
+  --create-namespace \
+  --namespace ticketing \
+  --wait \
+  --timeout 5m
+```
+
+### Validacija deployment-a
+
+```bash
+# Provjeri da su svi podovi Running
+kubectl get pods -n ticketing
+
+# Očekivani output (7 podova):
+# api-XXX           1/1   Running   (2 replike)
+# worker-XXX        1/1   Running
+# frontend-XXX      1/1   Running   (2 replike)
+# postgres-0        1/1   Running
+# redis-XXX         1/1   Running
+
+# Helm release status
+helm status ticketing -n ticketing
+```
+
+### Pristup aplikaciji
+
+Na macOS Apple Silicon (Docker Desktop), koristi port-forward:
+
+```bash
+kubectl port-forward -n ingress-nginx svc/ingress-nginx-controller 8080:80 &
+
+# Otvori browser:
+open http://localhost:8080
+
+# Ili API testovi:
+curl http://localhost:8080/healthz
+curl http://localhost:8080/events
+curl -X POST http://localhost:8080/tickets/purchase \
+  -H "Content-Type: application/json" \
+  -d '{"eventId":"evt-1001","customerEmail":"k8s-test@example.com","quantity":2}'
+curl http://localhost:8080/tickets/orders
+```
+
+> **Napomena**: Na Linux serveru (cloud K8s, on-prem) može se koristiti `http://ticketing.local` direktno preko Ingress-a — port-forward je workaround za macOS Docker Desktop networking ograničenje. Detalji u [RUNBOOK.md](RUNBOOK.md) sekcija 4.4.
+
+### Rolling update i rollback
+
+```bash
+# Pregled povijesti deploya
+helm history ticketing -n ticketing
+
+# Rolling update (npr. nova verzija API-a)
+helm upgrade ticketing . \
+  --namespace ticketing \
+  --set api.image.tag=sha-<new-commit>
+
+# Pratite rolling update u real-time
+kubectl rollout status deployment/api -n ticketing
+
+# Rollback na prethodnu reviziju
+helm rollback ticketing <revision> -n ticketing
+```
+
 ## Sigurnosni elementi
 
-- Multi-stage Docker build i non-root runtime korisnik
+- Multi-stage Docker build i non-root runtime korisnik (UID 1001)
 - Secret + ConfigMap odvojena konfiguracija
-- Liveness/Readiness probe
+- Liveness/Readiness probe za sve servise
 - Resource requests/limits
-- ServiceAccount + RBAC
-- NetworkPolicy segmentacija
-- Trivy skeniranje slika u CI pipelineu
+- ServiceAccount + RBAC s least privilege principom
+- NetworkPolicy mrežna segmentacija (default-deny ingress)
+- Trivy skeniranje slika u CI pipelineu (shift-left)
+- Pod-level i container-level securityContext (`allowPrivilegeEscalation: false`, `capabilities: drop ALL`)
 
 Detalji skeniranja: [`docs/security/security-report.md`](docs/security/security-report.md)
 
@@ -79,6 +196,13 @@ Za produkcijsku upotrebu preporuca se imutabilan tag:
 ```bash
 docker pull ghcr.io/pikii96/devops-project-app/api:sha-<commit>
 ```
+
+## Operativna dokumentacija
+
+| Dokument | Sadržaj |
+|---|---|
+| [RUNBOOK.md](RUNBOOK.md) | Troubleshooting runbook s 5 stvarnih incidentnih scenarija (platform mismatch, env var naming, database bootstrap, ingress reset, push-then-scan) |
+| [`docs/security/security-report.md`](docs/security/security-report.md) | Sigurnosno izvješće s nalazima skeniranja, hardening iteracijama i quality gate analizom |
 
 ### Korisni linkovi
 

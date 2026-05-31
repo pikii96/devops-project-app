@@ -1,0 +1,204 @@
+# ============================================================================
+# Secure Event Ticketing Platform - Helm values
+# ============================================================================
+# Projekt:        Uvod u DevOps - DevSecOps (Algebra Bernays 2026)
+# Student:        Marin Pavlović
+# ============================================================================
+
+# -------------------------------------------------------------------
+# Globalne postavke
+# -------------------------------------------------------------------
+global:
+  namespace: ticketing
+  imageTag: "sha-13c5c18"
+  imagePullPolicy: IfNotPresent
+
+# -------------------------------------------------------------------
+# API servis (REST endpoint)
+# -------------------------------------------------------------------
+api:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ghcr.io/pikii96/devops-project-app/api
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 3
+
+  readinessProbe:
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+
+  env:
+    NODE_ENV: production
+    API_PORT: "8080"
+
+# -------------------------------------------------------------------
+# Worker servis (background queue processor)
+# -------------------------------------------------------------------
+worker:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/pikii96/devops-project-app/worker
+
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      cpu: 150m
+      memory: 192Mi
+
+  env:
+    NODE_ENV: production
+
+# -------------------------------------------------------------------
+# Frontend servis (Web UI)
+# -------------------------------------------------------------------
+frontend:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ghcr.io/pikii96/devops-project-app/frontend
+
+  service:
+    type: ClusterIP
+    port: 3000
+
+  resources:
+    requests:
+      cpu: 30m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 3
+    periodSeconds: 10
+
+  env:
+    NODE_ENV: production
+    FRONTEND_PORT: "3000"
+    API_BASE_URL: "http://api.ticketing.svc.cluster.local:8080"
+
+# -------------------------------------------------------------------
+# PostgreSQL baza (StatefulSet s perzistencijom)
+# -------------------------------------------------------------------
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+
+  service:
+    type: ClusterIP
+    port: 5432
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: standard
+
+  database: tickets
+
+# -------------------------------------------------------------------
+# Redis cache/queue
+# -------------------------------------------------------------------
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+
+  service:
+    type: ClusterIP
+    port: 6379
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# -------------------------------------------------------------------
+# Ingress
+# -------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  host: ticketing.local
+
+# -------------------------------------------------------------------
+# SecurityContext
+# -------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# -------------------------------------------------------------------
+# ServiceAccount + RBAC
+# -------------------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ticketing-sa
+
+# -------------------------------------------------------------------
+# NetworkPolicy
+# -------------------------------------------------------------------
+networkPolicy:
+  enabled: true

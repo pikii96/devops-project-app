@@ -1,0 +1,34 @@
+{{- if .Values.serviceAccount.create -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "ticketing.fullname" . }}-role
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ticketing.labels" . | nindent 4 }}
+rules:
+  # Minimum - servisi smiju pročitati svoju ConfigMap i Secret
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+    resourceNames:
+      - {{ include "ticketing.fullname" . }}-config
+      - {{ include "ticketing.fullname" . }}-secret
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "ticketing.fullname" . }}-rolebinding
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ticketing.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ticketing.serviceAccountName" . }}
+    namespace: {{ .Values.global.namespace }}
+roleRef:
+  kind: Role
+  name: {{ include "ticketing.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

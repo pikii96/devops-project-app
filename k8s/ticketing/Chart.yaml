@@ -1,0 +1,16 @@
+apiVersion: v2
+name: ticketing
+description: Secure Event Ticketing Platform - DevSecOps demo project (Algebra Bernays 2026)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - ticketing
+  - devops
+  - devsecops
+  - algebra-bernays
+
+maintainers:
+  - name: Marin Pavlović
+    email: mpavlovic1996@outlook.com

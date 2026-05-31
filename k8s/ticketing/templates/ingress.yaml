@@ -1,0 +1,52 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ticketing.fullname" . }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ticketing.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          # API endpoint-ovi (/tickets, /events, /healthz, /readyz)
+          - path: /(tickets/.*|events|healthz|readyz)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: {{ .Values.api.service.port }}
+          # Sve ostalo ide na frontend (UI)
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+    # Dodatni rule za localhost (bez specijalnog host-a)
+    - host: localhost
+      http:
+        paths:
+          - path: /(tickets/.*|events|healthz|readyz)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: {{ .Values.api.service.port }}
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: {{ .Values.frontend.service.port }}
+{{- end }}

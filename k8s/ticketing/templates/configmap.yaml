@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ticketing.fullname" . }}-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "ticketing.labels" . | nindent 4 }}
+data:
+  # Postgres veza (bez password-a - to ide u Secret)
+  POSTGRES_HOST: "postgres.{{ .Values.global.namespace }}.svc.cluster.local"
+  POSTGRES_PORT: {{ .Values.postgres.service.port | quote }}
+  POSTGRES_DB: {{ .Values.postgres.database | quote }}
+  POSTGRES_USER: "ticketing"
+
+  # Redis veza
+  REDIS_HOST: "redis.{{ .Values.global.namespace }}.svc.cluster.local"
+  REDIS_PORT: {{ .Values.redis.service.port | quote }}
+
+  # Application config
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+  # Event lista (demo podaci)
+  EVENT_LIST: |
+    [
+      {"id": "evt-1001", "name": "DevSecOps Bootcamp (Zagreb)"},
+      {"id": "evt-1002", "name": "Cloud Native Day (Split)"},
+      {"id": "evt-1003", "name": "Security Engineering Meetup (Rijeka)"}
+    ]

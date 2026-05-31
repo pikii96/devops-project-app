@@ -8,3 +8,7 @@ coverage/
 *.log
 dist/
 build/
+
+# Lokalne developer biljeske (ne committaj)
+docs/PROJEKT-STATUS.md
+
