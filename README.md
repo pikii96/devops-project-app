@@ -201,6 +201,7 @@ docker pull ghcr.io/pikii96/devops-project-app/api:sha-<commit>
 
 | Dokument | Sadržaj |
 |---|---|
+| [`docs/ARHITEKTURA.md`](docs/ARHITEKTURA.md) | Arhitektonska analiza — usporedba kontejner vs VM pristupa, obrazloženje odabira servisa, opis međuservisne komunikacije i usklađenost s ciljevima projekta (Ishod I1) |
 | [RUNBOOK.md](RUNBOOK.md) | Troubleshooting runbook s 5 stvarnih incidentnih scenarija (platform mismatch, env var naming, database bootstrap, ingress reset, push-then-scan) |
 | [`docs/security/security-report.md`](docs/security/security-report.md) | Sigurnosno izvješće s nalazima skeniranja, hardening iteracijama i quality gate analizom |
 
