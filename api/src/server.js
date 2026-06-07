@@ -123,21 +123,25 @@ app.get("/tickets/orders", async (_req, res) => {
     }
 });
 
-connectRedis()
-    .then(() => {
-        app.listen(port, () => {
-            console.log(`API listening on port ${port}`);
+if (require.main === module) {
+    connectRedis()
+        .then(() => {
+            app.listen(port, () => {
+                console.log(`API listening on port ${port}`);
+            });
+        })
+        .catch((error) => {
+            console.error("Failed to start API:", error);
+            process.exit(1);
         });
-    })
-    .catch((error) => {
-        console.error("Failed to start API:", error);
-        process.exit(1);
-    });
 
-process.on("SIGTERM", async () => {
-    await pgPool.end();
-    if (redisClient.isOpen) {
-        await redisClient.quit();
-    }
-    process.exit(0);
-});
+    process.on("SIGTERM", async () => {
+        await pgPool.end();
+        if (redisClient.isOpen) {
+            await redisClient.quit();
+        }
+        process.exit(0);
+    });
+}
+
+module.exports = app;
