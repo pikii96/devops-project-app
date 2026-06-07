@@ -29,7 +29,7 @@ Cilj nije teorijski pregled svih opcija, već **konkretno opravdanje** za odabir
 | **Gustoća na hostu** | ~10-20 VM-ova po fizičkoj mašini | Stotine kontejnera po hostu | **Trošak hardvera** je značajno manji |
 | **Portabilnost** | VM image (GB) ovisan o hypervisor-u | OCI slika (MB) standardizirana | Slika `ghcr.io/pikii96/devops-project-app/api:sha-9d8194a` radi bilo gdje gdje postoji container runtime |
 | **Image build time** | 10-30 minuta | 30 sekundi - 2 minute | **CI/CD pipeline** je 10× brži (naše Faza 2 builds: 50s-1m10s) |
-| **Image storage** | 1-10 GB | 50-200 MB | Naše slike: api 51.5MB, worker 49.4MB, frontend 51.2MB |
+| **Image storage** | 1-10 GB | 50-200 MB | Naše slike (komprimirano u registriju): api 51.5MB, worker 49.4MB, frontend 51.2MB (~170MB nekomprimirano) |
 | **Update strategija** | VM replace (downtime) ili in-place patching | Rolling update (zero downtime) | K8s Deployment s `maxSurge: 1, maxUnavailable: 0` daje zero-downtime |
 | **Konfiguracijski drift** | Mutable (može se "potezati" tijekom vremena) | Immutable (svaka promjena = nova slika) | Garantira **reproducibilnost** — `sha-9d8194a` je isti svuda |
 | **OS patch management** | Po VM-u, manualno ili kroz config mgmt | Rebuild slike + redeploy | Trivy quality gate u CI-u automatski detektira CVE-ove |
@@ -41,7 +41,7 @@ Kontejnerski pristup je odabran iz **četiri ključna razloga**:
 #### 2.2.1 Brzina i agilnost razvoja
 - **Developer onboarding**: novi developer pokreće `docker compose up -d` i u 30 sekundi ima cijeli stack pokrenut lokalno. S VM-ovima bi trebalo Vagrant + Ansible + 20 minuta.
 - **Lokalna ↔ produkcijska paritet**: Compose za lokalno, Helm za K8s — **isti Dockerfile**, ista slika, ista konfiguracija. VM bi zahtjevao odvojene image-e za dev/prod.
-- **CI/CD ciklus**: prosječni pipeline trajanje **1m 21s** za build + scan + push 3 slike. VM build bi bio 15-30 minuta.
+- **CI/CD ciklus**: prosječni pipeline trajanje **1m 53s** za build + scan + push 3 slike. VM build bi bio 15-30 minuta.
 
 #### 2.2.2 Sigurnost kroz immutability
 - **Immutable infrastructure**: jednom kad se slika sa sha tagom objavi i prođe Trivy gate, ne mijenja se. VM-ovi se često "potezaju" kroz vrijeme što stvara security debt.
@@ -260,7 +260,7 @@ U Kubernetes-u svaki Service dobiva DNS naziv u formatu `<service>.<namespace>.s
 | `postgres` | `postgres.ticketing.svc.cluster.local` | API, Worker |
 | `redis` | `redis.ticketing.svc.cluster.local` | API, Worker |
 
-**Bitno**: cluster DNS je dostupan **samo unutar cluster-a**. Browser u korisnikovom kompjuteru ga ne može razriješiti — zato browser komunicira s API-jem **kroz Ingress** (`/events`, `/tickets/purchase`), ne direktno na cluster DNS. (Vidi RUNBOOK 4.6 za detalje.)
+**Bitno**: cluster DNS je dostupan **samo unutar cluster-a**. Browser u korisnikovom kompjuteru ga ne može razriješiti — zato browser komunicira s API-jem **kroz Ingress** (`/events`, `/tickets/purchase`), ne direktno na cluster DNS. (Vidi RUNBOOK 4.4 za detalje.)
 
 ### 4.5 Stateful vs stateless dizajn
 
@@ -294,7 +294,7 @@ U Kubernetes-u svaki Service dobiva DNS naziv u formatu `<service>.<namespace>.s
 | Cilj projekta | Kako arhitektura podupire | Konkretno u našem projektu |
 |---|---|---|
 | **Lokalni razvoj** | Docker Compose s istim slikama kao K8s | `compose.yaml` pokreće cijeli stack u 30s |
-| **CI/CD pipeline** | Container-native: matrix build 3 slike paralelno | GitHub Actions: 1m 21s end-to-end |
+| **CI/CD pipeline** | Container-native: matrix build 3 slike paralelno | GitHub Actions: 1m 53s end-to-end |
 | **Sigurna isporuka** | Slike skenirane prije push-a; immutable tag-ovi | Trivy quality gate, sha-9d8194a |
 | **Orkestracija** | K8s native koncepti (Deployment, StatefulSet, Service) | Helm chart s 22 manifesta |
 | **Observability** | Probes, structured logging, K8s events | Liveness + readiness za sve servise |
