@@ -3,7 +3,12 @@
 #
 # Enables hot-reload for all Node.js services by:
 #   1. Mounting source code from host into the container (bind mount)
-#   2. Running nodemon via npx (downloaded on first start; no Dockerfile change)
+#   2. Using Node.js 20's built-in --watch flag (no nodemon, no npx needed)
+#
+# This approach preserves multi-stage hardening:
+#   - No devDependencies in runtime image
+#   - No extra binaries in the container
+#   - Only the existing 'node' binary is used
 #
 # Production use of compose.yaml is unaffected - delete or rename this file
 # to disable development mode.
@@ -14,22 +19,22 @@
 
 services:
   api:
-    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/server.js"]
+    command: ["node", "--watch", "src/server.js"]
     volumes:
-      - ./api/src:/app/src:ro
+      - ./api/src:/app/src
     environment:
       NODE_ENV: development
 
   worker:
-    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/worker.js"]
+    command: ["node", "--watch", "src/worker.js"]
     volumes:
-      - ./worker/src:/app/src:ro
+      - ./worker/src:/app/src
     environment:
       NODE_ENV: development
 
   frontend:
-    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/server.js"]
+    command: ["node", "--watch", "src/server.js"]
     volumes:
-      - ./frontend/src:/app/src:ro
+      - ./frontend/src:/app/src
     environment:
       NODE_ENV: development
