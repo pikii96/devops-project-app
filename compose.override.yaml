@@ -1,0 +1,35 @@
+# Docker Compose override for local development
+# Auto-loaded by 'docker compose' when this file exists alongside compose.yaml
+#
+# Enables hot-reload for all Node.js services by:
+#   1. Mounting source code from host into the container (bind mount)
+#   2. Running nodemon via npx (downloaded on first start; no Dockerfile change)
+#
+# Production use of compose.yaml is unaffected - delete or rename this file
+# to disable development mode.
+#
+# Usage:
+#   docker compose up -d        (development mode with hot-reload, default)
+#   docker compose -f compose.yaml up -d  (production-like, without override)
+
+services:
+  api:
+    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/server.js"]
+    volumes:
+      - ./api/src:/app/src:ro
+    environment:
+      NODE_ENV: development
+
+  worker:
+    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/worker.js"]
+    volumes:
+      - ./worker/src:/app/src:ro
+    environment:
+      NODE_ENV: development
+
+  frontend:
+    command: ["npx", "nodemon", "--watch", "/app/src", "/app/src/server.js"]
+    volumes:
+      - ./frontend/src:/app/src:ro
+    environment:
+      NODE_ENV: development

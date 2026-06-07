@@ -9,7 +9,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/config", (_req, res) => {
     res.status(200).json({
-        apiBaseUrl: process.env.API_BASE_URL || "http://localhost:8080"
+        apiBaseUrl: process.env.API_BASE_URL ?? "http://localhost:8080"
     });
 });
 

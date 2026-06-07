@@ -25,6 +25,20 @@ docker compose up -d
 docker compose logs -f
 ```
 
+### Development mode (hot-reload)
+
+Datoteka `compose.override.yaml` se automatski učitava pored `compose.yaml` i omogućava hot-reload kroz `nodemon` i bind mount izvora — svaki put kad spremiš izmjenu u `api/src/`, `worker/src/` ili `frontend/src/`, kontejner se automatski restartira.
+
+```bash
+# Development mode (hot-reload, default kad postoji compose.override.yaml)
+docker compose up -d
+
+# Production-like pokretanje bez override-a
+docker compose -f compose.yaml up -d
+```
+
+Override koristi `npx nodemon` u runtime-u, tako da Dockerfile-ovi ostaju multi-stage hardened (bez nodemon-a u produkcijskoj slici).
+
 ### Brza validacija funkcionalnosti
 
 1. Health API:
