@@ -14,9 +14,32 @@ jobs:
       - name: Print hello
         run: echo "Hello from CI pipeline! Commit ${{ github.sha }}"
 
+  test:
+    name: Run API tests
+    needs: hello
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install API dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Run API tests
+        working-directory: ./api
+        run: npm test
+
   build:
     name: Build & Scan Docker Images
-    needs: hello
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
