@@ -550,7 +550,6 @@ Za detaljne scenarije i rješenja vidi [RUNBOOK.md](RUNBOOK.md) — sadrži 6 st
 | [`docs/ARHITEKTURA.md`](docs/ARHITEKTURA.md) | Arhitektonska analiza — usporedba kontejner vs VM pristupa, obrazloženje odabira servisa, opis međuservisne komunikacije i usklađenost s ciljevima projekta (Ishod I1) |
 | [`RUNBOOK.md`](RUNBOOK.md) | Operativni runbook s 6 stvarnih incidentnih scenarija (platform mismatch, env var naming, database bootstrap, ingress reset, push-then-scan, compose override regression) |
 | [`docs/security/security-report.md`](docs/security/security-report.md) | Sigurnosno izvješće s nalazima skeniranja, hardening iteracijama i quality gate analizom (4 iteracije) |
-| [`docs/VODIC-ZA-POCETNIKE.md`](docs/VODIC-ZA-POCETNIKE.md) | Edukacijski vodič kroz projekt za potpune početnike u DevOps-u |
 
 ### Korisni linkovi
 
@@ -563,21 +562,6 @@ Za detaljne scenarije i rješenja vidi [RUNBOOK.md](RUNBOOK.md) — sadrži 6 st
 ## Akademska napomena
 
 Repozitorij je vlastiti rad u sklopu kolegija **Uvod u DevOps - DevSecOps** na Sveučilištu Algebra Bernays. Prati ishode učenja definirane u projektnom zadatku "Secure Event Ticketing Platform".
-
-### Implementirani ishodi
-
-- **I1** - Kontejnerska arhitektura vs VM, granularna izolacija servisa (`docs/ARHITEKTURA.md`)
-- **I2** - Sigurnost slika: multi-stage build, non-root korisnik (UID 1001), Trivy scan
-- **I3** - CI/CD pipeline s automatiziranim testiranjem (Jest), automatski build i publish
-- **I4** - DevSecOps metodologija ugrađena u pipeline (quality gate, shift-left)
-- **I5** - Operativni runbook s 6 incidentnih scenarija
-- **I6** - Kubernetes orkestracija s Helm chart-om (22 manifesta) i svim sigurnosnim primitivima
-
----
-
-## Napomena o umjetnoj inteligenciji
-
-Dijelovi ovog repozitorija, uključujući dokumentaciju i konfiguracijske datoteke, kreirani su uz pomoć alata umjetne inteligencije (Claude AI). Sve arhitektonske odluke, implementacijski izbori i operativne odluke su autorovi, a AI je korišten kao pomoć za strukturiranje dokumentacije i first draft-ove tekstova.
 
 ---
 
