@@ -23,7 +23,6 @@ Platforma demonstrira cjeloviti DevSecOps tok jedne višeslojne aplikacije: od l
 9. [Troubleshooting](#troubleshooting)
 10. [Operativna dokumentacija](#operativna-dokumentacija)
 11. [Akademska napomena](#akademska-napomena)
-12. [Napomena o umjetnoj inteligenciji](#napomena-o-umjetnoj-inteligenciji)
 
 ---
 
